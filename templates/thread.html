@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', sans-serif; }
+    </style>
+    <meta charset="UTF-8">
+    <title>{{ thread.subject_name }} - Past Paper Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+        (function() {
+            if (localStorage.theme === 'dark' || (!localStorage.theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.theme = isDark ? 'dark' : 'light';
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-[#030303] text-gray-900 dark:text-[#D7DADC] min-h-screen transition-colors">
+
+    <nav class="sticky top-0 z-50 bg-white dark:bg-[#1A1A1B] border-b dark:border-[#343536] px-6 py-2 flex justify-between items-center shadow-md">
+        <div class="flex items-center gap-6">
+            <div class="flex flex-col cursor-pointer" onclick="location.href='/'">
+                <h1 class="font-black text-lg text-blue-500 leading-none uppercase tracking-tighter">Past Paper Hub</h1>
+                <div class="flex gap-3 text-[9px] font-bold opacity-50 uppercase mt-1">
+                    <span class="text-green-500">● <span id="online-count">{{ online_users }}</span> Online</span>
+                    <span>Posts: {{ total_posts }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <a href="/about" class="text-[10px] font-bold uppercase opacity-60 hover:opacity-100 transition-all mr-2">About</a>
+            <a href="/create-thread" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase shadow-md transition-all">Create Thread</a>
+            
+            {% if session.get('is_admin') %}
+                <a href="/admin" class="text-[10px] bg-red-600 text-white px-3 py-1 rounded-full font-bold">ADMIN</a>
+            {% endif %}
+            
+            <button onclick="toggleDarkMode()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <i class="fas fa-adjust text-sm"></i>
+            </button>
+            
+            {% if session['user'] %}
+                <div class="flex flex-col items-end border-l dark:border-[#343536] pl-4">
+                    <span class="text-[10px] font-bold">u/{{ session['user'] }}</span>
+                    <a href="/logout" class="text-[9px] text-red-500 font-bold uppercase hover:underline">Logout</a>
+                </div>
+            {% else %}
+                <button onclick="document.getElementById('auth-modal').classList.remove('hidden')" class="bg-blue-500 text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase shadow-md">Login</button>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 grid grid-cols-12 gap-8 py-10">
+        
+        <aside class="col-span-12 md:col-span-3">
+            <div class="bg-white dark:bg-[#1A1A1B] rounded-xl border dark:border-[#343536] overflow-hidden shadow-sm sticky top-20">
+                <div class="p-4 border-b dark:border-[#343536]">
+                    <h3 class="text-[10px] font-black uppercase opacity-50 tracking-widest">Navigation</h3>
+                </div>
+                <div class="flex flex-col">
+                    <a href="/" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 border-b dark:border-[#343536] transition">
+                        <i class="fas fa-arrow-left text-blue-500 text-[10px]"></i> Back to Feed
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <div class="col-span-12 md:col-span-9">
+            <div class="bg-white dark:bg-[#1A1A1B] rounded-xl border dark:border-[#343536] flex shadow-sm mb-8 overflow-hidden">
+                <div class="w-12 bg-gray-50 dark:bg-[#151516] flex flex-col items-center py-4 gap-1 border-r dark:border-[#343536]">
+                    <a href="/vote/thread/{{thread.id}}" class="{{ 'text-orange-500' if 't'~thread.id in uv else 'opacity-30' }} hover:text-orange-500 transition-all">
+                        <i class="fas fa-arrow-up text-xl"></i>
+                    </a>
+                    <span class="text-xs font-black">{{ thread.votes|length }}</span>
+                </div>
+
+                <div class="p-6 flex-1">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] font-bold opacity-40 uppercase tracking-wide">
+                            <span class="text-blue-500">{{ thread.faculty }}</span> • u/{{ thread.author }} • {{ thread.date_posted.strftime('%B %d, %Y') }}
+                        </span>
+                        <div class="flex gap-4">
+                            {% if session['user'] == thread.author or session['is_admin'] %}
+                            <a href="/delete-thread/{{ thread.id }}" onclick="return confirm('Delete this thread and all files?')" class="text-[10px] font-bold text-red-500 hover:underline transition-all"><i class="fas fa-trash mr-1"></i> DELETE</a>
+                            {% endif %}
+                            <button onclick="openReport('{{thread.id}}', 'thread')" class="text-[10px] font-bold text-gray-400 hover:text-red-500 transition-all"><i class="fas fa-flag mr-1"></i> REPORT</button>
+                        </div>
+                    </div>
+                    
+                    <h1 class="text-2xl font-black tracking-tight">
+                        <span class="text-blue-500">[{{thread.subject_code}}]</span> {{thread.subject_name}}
+                    </h1>
+                    
+                    <div class="mt-4 text-sm leading-relaxed whitespace-pre-wrap opacity-90">{{thread.content}}</div>
+
+                    {% if thread.file_path %}
+                    <div class="mt-8 p-5 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 flex items-center justify-between group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                                <i class="fas fa-file-pdf text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-black uppercase tracking-tight text-blue-600 dark:text-blue-400">Past Paper Attached</p>
+                                <p class="text-[10px] opacity-60 font-medium">Verify your answers with this resource</p>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('uploaded_file', filename=thread.file_path) }}" target="_blank" class="bg-blue-500 text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase hover:bg-blue-600 transition-all shadow-md active:scale-95">
+                            Open Document
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <div class="flex items-center gap-2 mb-6">
+                    <div class="h-[1px] flex-1 bg-gray-200 dark:border-[#343536]"></div>
+                    <h3 class="text-[10px] font-black uppercase opacity-40 tracking-widest px-2">{{ thread.comments|length }} Comments</h3>
+                    <div class="h-[1px] flex-1 bg-gray-200 dark:border-[#343536]"></div>
+                </div>
+                
+                {% if session['user'] %}
+                <form action="/comment/{{thread.id}}" method="POST" class="mb-8">
+                    <div class="bg-white dark:bg-[#1A1A1B] border dark:border-[#343536] rounded-xl overflow-hidden focus-within:border-blue-500 transition-all">
+                        <textarea name="content" class="w-full p-4 bg-transparent text-sm outline-none h-28 resize-none" placeholder="What are your thoughts?" required></textarea>
+                        <div class="p-2 bg-gray-50 dark:bg-[#151516] flex justify-end">
+                            <button class="bg-blue-500 text-white px-6 py-1.5 rounded-full font-black text-[10px] uppercase hover:bg-blue-600 transition shadow-sm">Post Comment</button>
+                        </div>
+                    </div>
+                </form>
+                {% endif %}
+
+                <div class="space-y-4">
+                    {% macro render_c(c) %}
+                    {% set is_removed = (c.content == "[Comment removed by admin]") %}
+                    <div class="border-l-2 border-gray-100 dark:border-[#343536] pl-4 mt-6 transition-all hover:border-blue-500/50">
+                        <div class="flex items-start gap-3 group/comment">
+                            <div class="flex flex-col items-center gap-1">
+                                {% if not is_removed %}
+                                <a href="/vote/comment/{{c.id}}" class="{{ 'text-orange-500' if 'c'~c.id in uv else 'opacity-20' }} hover:text-orange-500 transition-all">
+                                    <i class="fas fa-arrow-up text-xs"></i>
+                                </a>
+                                <span class="text-[10px] font-black">{{ c.votes|length }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center">
+                                    <div class="text-[10px] font-black opacity-40 mb-1 uppercase tracking-tighter">u/{{c.author}}</div>
+                                    <div class="flex gap-3">
+                                        {% if not is_removed %}
+                                            {% if session['user'] == c.author or session.get('is_admin') %}
+                                            <form action="/delete-comment/{{ c.id }}" method="POST" class="inline" onsubmit="return confirm('Delete this comment?')">
+                                                <button type="submit" class="text-[9px] text-red-500 opacity-0 group-hover/comment:opacity-100 hover:opacity-100 uppercase font-black transition-all">Delete</button>
+                                            </form>
+                                            {% endif %}
+                                            <button onclick="openReport('{{c.id}}', 'comment')" class="text-[9px] text-red-400 opacity-0 group-hover/comment:opacity-100 hover:opacity-100 uppercase font-black transition-all">Report</button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <p class="text-sm leading-relaxed {{ 'italic opacity-50' if is_removed else 'text-gray-800 dark:text-gray-200' }}">
+                                    {{c.content}}
+                                </p>
+                                
+                                {% if not is_removed %}
+                                <div class="flex gap-4 mt-2">
+                                    <button onclick="this.parentElement.nextElementSibling.classList.toggle('hidden')" class="text-[9px] font-black uppercase opacity-30 hover:opacity-100 transition-all">Reply</button>
+                                </div>
+
+                                <div class="hidden mt-4 bg-gray-50 dark:bg-black/20 p-3 rounded-xl border dark:border-gray-800">
+                                    <form action="/comment/{{thread.id}}" method="POST">
+                                        <input type="hidden" name="parent_id" value="{{c.id}}">
+                                        <textarea name="content" class="w-full bg-white dark:bg-black rounded-lg p-3 text-xs border dark:border-gray-800 outline-none focus:ring-1 focus:ring-blue-500" placeholder="Write a reply..." required></textarea>
+                                        <div class="flex justify-end gap-2 mt-2">
+                                            <button type="button" onclick="this.closest('.hidden').classList.add('hidden')" class="px-3 py-1 text-[9px] font-black uppercase opacity-50">Cancel</button>
+                                            <button class="bg-blue-500 text-white px-4 py-1 rounded-full text-[9px] font-black uppercase shadow-sm">Submit</button>
+                                        </div>
+                                    </form>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="mt-2">
+                                    {% for r in c.replies %} {{ render_c(r) }} {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endmacro %}
+
+                    {% for c in thread.comments if not c.parent_id %} {{ render_c(c) }} {% endfor %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="auth-modal" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-[#1A1A1B] w-full max-w-sm rounded-2xl p-8 relative shadow-2xl text-center">
+            <button onclick="document.getElementById('auth-modal').classList.add('hidden')" class="absolute top-4 right-4 opacity-30 hover:opacity-100 transition-all"><i class="fas fa-times"></i></button>
+            <h2 id="auth-title" class="text-2xl font-black uppercase tracking-tighter text-blue-500 mb-6">Sign In</h2>
+            <form id="auth-form" action="/login" method="POST" class="space-y-4">
+                <input type="text" name="student_id" placeholder="STUDENT ID" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-black border dark:border-gray-800 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-xs" required>
+                <input type="password" name="password" placeholder="PASSWORD" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-black border dark:border-gray-800 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-xs" required>
+                <button id="auth-submit" class="w-full bg-blue-500 text-white py-4 rounded-lg font-black uppercase text-xs tracking-widest hover:bg-blue-600 transition shadow-lg">Login</button>
+            </form>
+            <div class="mt-6">
+                <p id="auth-switch-text" class="text-[10px] font-black uppercase tracking-widest opacity-50">
+                    Don't have an account? 
+                    <button onclick="toggleAuthMode()" class="text-blue-500 hover:underline block mx-auto mt-1">Register Now</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="report-modal" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-[#1A1A1B] w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+            <h2 id="report-title" class="text-lg font-black mb-4 text-red-500 uppercase tracking-tight">Report Content</h2>
+            <form id="report-form" method="POST">
+                <textarea name="reason" placeholder="What's the issue?" class="w-full p-3 rounded-xl bg-gray-100 dark:bg-black border dark:border-gray-800 outline-none h-32 text-sm mb-4 focus:ring-1 focus:ring-red-500" required></textarea>
+                <div class="flex gap-2">
+                    <button type="button" onclick="document.getElementById('report-modal').classList.add('hidden')" class="flex-1 bg-gray-200 dark:bg-gray-800 py-2 rounded-lg font-black text-[10px] uppercase">Cancel</button>
+                    <button type="submit" class="flex-1 bg-red-500 text-white py-2 rounded-lg font-black text-[10px] uppercase shadow-md">Submit Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        socket.on('user_count', (count) => {
+            const el = document.getElementById('online-count');
+            if(el) el.innerText = count;
+        });
+
+        function openReport(id, type) {
+            const modal = document.getElementById('report-modal');
+            const form = document.getElementById('report-form');
+            const title = document.getElementById('report-title');
+            form.action = '/report/' + type + '/' + id;
+            title.innerText = 'Report ' + (type === 'thread' ? 'Thread' : 'Comment');
+            modal.classList.remove('hidden');
+        }
+
+        function toggleAuthMode() {
+            const form = document.getElementById('auth-form');
+            const title = document.getElementById('auth-title');
+            const submitBtn = document.getElementById('auth-submit');
+            const switchText = document.getElementById('auth-switch-text');
+
+            if (form.action.endsWith('/login')) {
+                form.action = '/register';
+                title.innerText = 'Create Account';
+                submitBtn.innerText = 'Register';
+                switchText.innerHTML = 'Already have an account? <button onclick="toggleAuthMode()" class="text-blue-500 hover:underline block mx-auto mt-1">Login</button>';
+            } else {
+                form.action = '/login';
+                title.innerText = 'Sign In';
+                submitBtn.innerText = 'Login';
+                switchText.innerHTML = 'Don\'t have an account? <button onclick="toggleAuthMode()" class="text-blue-500 hover:underline block mx-auto mt-1">Register Now</button>';
+            }
+        }
+    </script>
+</body>
+</html>

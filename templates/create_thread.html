@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', sans-serif; }
+        
+        /* Video Background Styling */
+        .video-bg {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            z-index: -2;
+            object-fit: cover;
+        }
+
+        /* Dark overlay to ensure text readability */
+        .video-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: -1;
+        }
+    </style>
+    <meta charset="UTF-8">
+    <title>Create Thread - Mael's Blueprint</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = { darkMode: 'class' };
+        (function() {
+            if (localStorage.theme === 'dark' || (!localStorage.theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-[#030303] text-gray-900 dark:text-[#D7DADC] min-h-screen p-6 transition-colors">
+
+    <video autoplay muted loop playsinline class="video-bg">
+        <source src="{{ url_for('static', filename='create_thread_bg.mp4') }}" type="video/mp4">
+    </video>
+    <div class="video-overlay"></div>
+
+    <div class="flex flex-col items-center mb-6 relative z-10">
+        <div class="flex items-center gap-4 mb-3">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="w-16 h-16 object-contain cursor-pointer" onclick="location.href='/'">
+            <img src="{{ url_for('static', filename='logo2.png') }}" alt="Secondary Logo" class="w-16 h-16 object-contain cursor-pointer" onclick="location.href='/'">
+        </div>
+        <h1 class="text-xl font-black text-blue-500 uppercase tracking-widest drop-shadow-lg">Mael's Blueprint</h1>
+    </div>
+
+    <div class="max-w-2xl mx-auto bg-white/90 dark:bg-[#1A1A1B]/90 backdrop-blur-md rounded-xl shadow-2xl border dark:border-[#343536] overflow-hidden relative z-10">
+        
+        <div class="bg-blue-500/90 p-4 text-white flex items-center justify-between shadow-md">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-plus-circle"></i>
+                <h2 class="font-bold uppercase tracking-tight text-sm">Create New Thread</h2>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <a href="/about" class="text-[10px] font-bold uppercase opacity-80 hover:opacity-100 transition-all">About</a>
+                <a href="/" class="text-[10px] font-bold uppercase bg-white/20 px-3 py-1 rounded-full hover:bg-white/30 transition">
+                    <i class="fas fa-times mr-1"></i> Cancel
+                </a>
+            </div>
+        </div>
+        
+        <form action="/post" method="POST" enctype="multipart/form-data" class="p-6 space-y-5">
+            <div>
+                <label class="block text-[10px] font-black uppercase opacity-50 mb-1.5 tracking-widest dark:text-white">Faculty Selection</label>
+                <select name="faculty" class="w-full bg-gray-50 dark:bg-black/50 border dark:border-[#343536] rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm appearance-none cursor-pointer">
+                    <option>DMLT</option>
+                    <option>BBMS</option>
+                    <option>BENV</option>
+                    <option>BOSH</option>
+                    <option>MAB</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-[10px] font-black uppercase opacity-50 mb-1.5 tracking-widest dark:text-white">Subject Code</label>
+                    <input type="text" name="code" id="subject-code" list="code-list" placeholder="e.g. CS101" required 
+                           class="w-full bg-gray-50 dark:bg-black/50 border dark:border-[#343536] rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <datalist id="code-list"></datalist>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black uppercase opacity-50 mb-1.5 tracking-widest dark:text-white">Subject Name</label>
+                    <input type="text" name="name" id="subject-name" list="name-list" placeholder="e.g. Programming I" required 
+                           class="w-full bg-gray-50 dark:bg-black/50 border dark:border-[#343536] rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <datalist id="name-list"></datalist>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black uppercase opacity-50 mb-1.5 tracking-widest dark:text-white">Thread Content</label>
+                <textarea name="content" rows="6" placeholder="Describe the paper or share helpful notes..." required 
+                          class="w-full bg-gray-50 dark:bg-black/50 border dark:border-[#343536] rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm leading-relaxed"></textarea>
+            </div>
+
+            <div class="border-2 border-dashed border-gray-200 dark:border-[#343536] rounded-xl p-6 text-center hover:border-blue-500 transition-colors bg-gray-50/50 dark:bg-black/30 group">
+                <label class="cursor-pointer">
+                    <input type="file" name="paper_file" class="hidden" accept=".pdf,.png,.jpg,.jpeg">
+                    <div class="space-y-2">
+                        <i class="fas fa-file-upload text-2xl text-gray-400 group-hover:text-blue-500 transition-colors"></i>
+                        <p class="text-[11px] font-bold uppercase tracking-wide opacity-60 dark:text-white">Upload Past Paper (Optional)</p>
+                        <p class="text-[9px] opacity-40 dark:text-white/60">Accepted: PDF, PNG, JPG (Max 16MB)</p>
+                        <div id="file-name" class="text-blue-500 text-[10px] font-bold mt-2"></div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="pt-2">
+                <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-4 rounded-lg uppercase text-xs tracking-widest shadow-lg transition-all active:scale-[0.98]">
+                    Post to Blueprint
+                </button>
+                <p class="text-center text-[9px] opacity-40 mt-4 uppercase font-bold tracking-tighter dark:text-white/60">By posting, you agree to share accurate academic materials.</p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Your existing subjectDatabase and script logic remains here...
+        let subjectDatabase = {
+            "MPU3142": "BAHASA MELAYU KOMUNIKASI 2",
+            "HDB10103": "CELL BIOLOGY",
+            "WEB10302": "FUNDAMENTAL ENGLISH",
+            "HDB10403": "HEALTH INFORMATICS",
+            "HDB10303": "HUMAN ANATOMY"
+        };
+
+        const codeInput = document.getElementById('subject-code');
+        const nameInput = document.getElementById('subject-name');
+        const codeList = document.getElementById('code-list');
+        const nameList = document.getElementById('name-list');
+
+        function refreshDatalists() {
+            codeList.innerHTML = "";
+            nameList.innerHTML = "";
+            Object.entries(subjectDatabase).forEach(([code, name]) => {
+                codeList.innerHTML += `<option value="${code}">`;
+                nameList.innerHTML += `<option value="${name}">`;
+            });
+        }
+
+        async function loadCommunitySubjects() {
+            try {
+                const response = await fetch('/get_subjects');
+                if (response.ok) {
+                    const communityData = await response.json();
+                    subjectDatabase = { ...subjectDatabase, ...communityData };
+                    refreshDatalists();
+                }
+            } catch (e) {
+                console.log("Database fetch failed.");
+            }
+        }
+
+        refreshDatalists();
+        loadCommunitySubjects();
+
+        codeInput.addEventListener('input', (e) => {
+            const val = e.target.value.toUpperCase();
+            e.target.value = val;
+            if (subjectDatabase[val]) nameInput.value = subjectDatabase[val];
+        });
+
+        nameInput.addEventListener('input', (e) => {
+            const val = e.target.value.toUpperCase();
+            e.target.value = val;
+            const entry = Object.entries(subjectDatabase).find(([c, n]) => n === val);
+            if (entry) codeInput.value = entry[0];
+        });
+
+        const fileInput = document.querySelector('input[type="file"]');
+        const fileNameDisplay = document.getElementById('file-name');
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileNameDisplay.innerHTML = `<i class="fas fa-check-circle mr-1"></i> Selected: ${e.target.files[0].name}`;
+            } else {
+                fileNameDisplay.innerText = "";
+            }
+        });
+    </script>
+</body>
+</html>
